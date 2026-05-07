@@ -313,7 +313,7 @@ jobs:
           echo "CONFIG_PACKAGE_kmod-qca-nss-dp=y" >> .config
           echo "CONFIG_PACKAGE_kmod-qca-nss-ecm=y" >> .config
           echo "CONFIG_PACKAGE_qca-nss-ecm=y" >> .config
-          echo "CONFIG_PACKAGE_kmod-qca-nss-crypto=y" >> .config
+          echo "CONFIG_PACKAGE_kmod-qca-nss-crypto=y" >> .config  # ✅ 启用，不禁用
 
           # ====================== 关键修复：禁用报错的 qca-mcs ======================
           echo "" >> .config
@@ -327,6 +327,13 @@ jobs:
           
           mkdir -p ${{ env.CUSTOM_FILES_PATH }}
           [ -d "builder_repo/${{ env.CUSTOM_FILES_PATH }}" ] && cp -r builder_repo/${{ env.CUSTOM_FILES_PATH }}. ${{ env.CUSTOM_FILES_PATH }} || true
+
+          # ==========================
+          # ✅ 最终修复：自动复制 NSS 头文件，解决 nss_api_if.h 找不到
+          # ==========================
+          mkdir -p staging_dir/target-aarch64_cortex-a53_musl/include/qca-nss-drv
+          find build_dir/target-aarch64_cortex-a53_musl/linux-qualcommax_ipq50xx/qca-nss-drv-*/include -name "*.h" -exec cp {} staging_dir/target-aarch64_cortex-a53_musl/include/qca-nss-drv/ \;
+          cp build_dir/target-aarch64_cortex-a53_musl/linux-qualcommax_ipq50xx/qca-nss-drv-*/include/*.h build_dir/target-aarch64_cortex-a53_musl/linux-qualcommax_ipq50xx/qca-nss-crypto-*/v2.0/src/ 2>/dev/null || true
 
       # ========== ✅ 自动注入真实编译时间（你要的核心功能） ==========
       - name: Inject real build timestamp
