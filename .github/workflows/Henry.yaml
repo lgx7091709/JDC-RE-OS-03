@@ -186,15 +186,15 @@ jobs:
           # ==============================================
           # 全局修复 pre-install 脚本报错 / ubus/service缺失
           # ==============================================
-          #echo "CONFIG_PACKAGE_procd=y" >> .config
-          #echo "CONFIG_PACKAGE_ubus=y" >> .config
+          echo "CONFIG_PACKAGE_procd=y" >> .config
+          echo "CONFIG_PACKAGE_ubus=y" >> .config
           echo "CONFIG_PACKAGE_ubusd=y" >> .config
-          #echo "CONFIG_PACKAGE_service=y" >> .config
-          #echo "CONFIG_PACKAGE_openwrt-release=y" >> .config
-          #echo "CONFIG_TARGET_PERMISSION_SET=y" >> .config
-          #echo "CONFIG_PACKAGE_blockd=y" >> .config
-          #echo "CONFIG_PACKAGE_lsblk=y" >> .config
-          #echo "CONFIG_PACKAGE_dmidecode=y" >> .config
+          echo "CONFIG_PACKAGE_service=y" >> .config
+          echo "CONFIG_PACKAGE_openwrt-release=y" >> .config
+          echo "CONFIG_TARGET_PERMISSION_SET=y" >> .config
+          echo "CONFIG_PACKAGE_blockd=y" >> .config
+          echo "CONFIG_PACKAGE_lsblk=y" >> .config
+          echo "CONFIG_PACKAGE_dmidecode=y" >> .config
           
           # 运行 oldconfig 接受新选项
           make oldconfig
@@ -326,33 +326,6 @@ jobs:
           rm -rf build_dir/target-*/openssl*
           rm -rf build_dir/host/openssl*
           echo "✅ OpenSSL 1.1 build dirs cleaned"
-
-      # 🔥🔥🔥 修复 OpenSSH GCC15 语法错误（仅修复EOF，其余逻辑不变）
-      - name: Fix OpenSSH GCC15 compile error
-        run: |
-          FILE=$(find build_dir/target-aarch64_cortex-a53_musl/openssh-* -name "openbsd-compat.h" 2>/dev/null | head -1)
-          if [ -f "$FILE" ]; then
-            sed -i 's|# define nl_langinfo(x) ""|#define nl_langinfo(x) ((char *)"")|g' "$FILE"
-            echo "✅ OpenSSH 修复成功"
-          fi
-          
-          FILE2="feeds/packages/net/openssh/patches/900-openssl-gcc15.patch"
-          if [ ! -f "$FILE2" ]; then
-            mkdir -p feeds/packages/net/openssh/patches
-            cat > "$FILE2" <<"EOF"
---- a/openbsd-compat/openbsd-compat.h
-+++ b/openbsd-compat/openbsd-compat.h
-@@ -284,7 +284,7 @@
- #undef nl_langinfo
- #endif
-
--# define nl_langinfo(x) ""
-+# define nl_langinfo(x) ((char *)"")
- #endif
-
- #ifndef have___progname
-EOF
-          fi
 
       - name: Download packages
         run: |
