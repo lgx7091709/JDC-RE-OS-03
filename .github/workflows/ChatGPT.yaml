@@ -6,18 +6,18 @@ permissions:
 
 on:
   #push:
-  #  branches:
-  #    - development-version
+    #branches:
+      #- development-version
   workflow_dispatch:
 
 env:
-  REMOTE_REPOSITORY:             Super-Henry/openwrt
-  REMOTE_BRANCH:                 development-version
-  CONFIG_FILE:                   re-cs-03.config
-  CUSTOM_FILES_PATH:             files/
-  RELEASE_PREFIX:                development-version
-  ENV:                           development-version
-  NSS_PACKAGES_REPOSITORY:       Super-Henry/NSS-PACKAGES
+  REMOTE_REPOSITORY: Super-Henry/openwrt
+  REMOTE_BRANCH: development-version
+  CONFIG_FILE: re-cs-03.config
+  CUSTOM_FILES_PATH: files/
+  RELEASE_PREFIX: development-version
+  ENV: development-version
+  NSS_PACKAGES_REPOSITORY: Super-Henry/NSS-PACKAGES
   NSS_PACKAGES_REPOSITORY_BRANCH: NSS-12.5-K6.x
 
 jobs:
@@ -25,9 +25,9 @@ jobs:
     name: Check for new commits
     runs-on: ubuntu-24.04
     outputs:
-      new_commits:                         ${{ steps.check_commits.outputs.new_commits }}
-      latest_commit_sha:                   ${{ steps.check_commits.outputs.latest_commit_sha }}
-      nss_packages_repo_new_commits:        ${{ steps.check_commits.outputs.nss_packages_repo_new_commits }}
+      new_commits: ${{ steps.check_commits.outputs.new_commits }}
+      latest_commit_sha: ${{ steps.check_commits.outputs.latest_commit_sha }}
+      nss_packages_repo_new_commits: ${{ steps.check_commits.outputs.nss_packages_repo_new_commits }}
       nss_packages_repo_latest_commit_sha: ${{ steps.check_commits.outputs.nss_packages_repo_latest_commit_sha }}
     steps:
       - name: Check for new commits in both repositories
@@ -66,7 +66,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: "builder_repo"
-          
+
       - name: Add custom patches
         run: |
           df -hT
@@ -77,7 +77,7 @@ jobs:
               [ -f "$patch" ] && git apply --verbose "$patch"
             done
           fi
-
+            
       - name: Update and install feeds
         run: |
           df -h
@@ -99,7 +99,7 @@ jobs:
             exit 1
           fi
 
-          # ----- 蒲公英 VPN (OpenOray) -----
+          #🔥 加入蒲公英 VPN (OpenOray) - 包含蒲公英、花生壳、向日葵
           git clone https://github.com/Super-Henry/OpenOray.git package/OpenOray
           
           # 检查克隆是否成功
@@ -117,6 +117,7 @@ jobs:
             sed -i '/+libopenssl3/d' package/OpenOray/pgyvpn/Makefile
             echo "✅ pgyvpn Makefile 已强制使用 OpenSSL 1.1"
           fi
+
 
           # 修复 luci-app-pgyvpn 的 Makefile
           if [ -f "package/OpenOray/luci-app-pgyvpn/Makefile" ]; then
@@ -208,6 +209,20 @@ jobs:
           
           # 强制加入 libopenssl1.1 的配置（确保包被识别）
           echo "CONFIG_PACKAGE_libopenssl1.1=y" >> .config
+
+          # ==============================================
+          # 全局修复 pre-install 脚本报错 / ubus/service缺失
+          # ==============================================
+          #echo "CONFIG_PACKAGE_procd=y" >> .config
+          #echo "CONFIG_PACKAGE_ubus=y" >> .config
+          echo "CONFIG_PACKAGE_ubusd=y" >> .config
+          #echo "CONFIG_PACKAGE_service=y" >> .config
+          #echo "CONFIG_PACKAGE_openwrt-release=y" >> .config
+          #echo "CONFIG_TARGET_PERMISSION_SET=y" >> .config
+          #echo "CONFIG_PACKAGE_blockd=y" >> .config
+          #echo "CONFIG_PACKAGE_lsblk=y" >> .config
+          #echo "CONFIG_PACKAGE_dmidecode=y" >> .config
+          
           # 运行 oldconfig 接受新选项
           make oldconfig
           
@@ -218,7 +233,10 @@ jobs:
 
           echo "CONFIG_PACKAGE_luci-app-openclash=y" >> .config
           echo "CONFIG_PACKAGE_luci-app-passwall2=y" >> .config
-          echo "CONFIG_PACKAGE_pgyvpn=y" >> .config
+          # 🔥 使用本地 IPQ5018 专用蒲公英
+
+          echo "CONFIG_PACKAGE_pgyvpn=m" >> .config
+          echo "CONFIG_PACKAGE_pgyvpn-ipq5018=y" >> .config
           echo "CONFIG_PACKAGE_luci-app-pgyvpn=y" >> .config
           echo "CONFIG_PACKAGE_luci-i18n-pgyvpn-zh-cn=y" >> .config
           # 花生壳
@@ -302,12 +320,11 @@ jobs:
           echo "CONFIG_PACKAGE_qca-mcs=n" >> .config
           # ========================================================================
 
-          # 最终整理
+          # 最后再运行一次 defconfig 确保依赖正确
           make defconfig -j$(nproc)
-
-          # 自定义文件
+          
           mkdir -p ${{ env.CUSTOM_FILES_PATH }}
-          [ -d "builder_repo/${{ env.CUSTOM_FILES_PATH }}" ] && cp -r builder_repo/${{ env.CUSTOM_FILES_PATH }} . ${{ env.CUSTOM_FILES_PATH }} || true
+          [ -d "builder_repo/${{ env.CUSTOM_FILES_PATH }}" ] && cp -r builder_repo/${{ env.CUSTOM_FILES_PATH }}. ${{ env.CUSTOM_FILES_PATH }} || true
 
       # ========== ✅ 自动注入真实编译时间（你要的核心功能） ==========
       - name: Inject real build timestamp
@@ -325,36 +342,29 @@ jobs:
           sudo mkdir -p /mnt/upper /mnt/work && sudo chmod a+w /mnt/upper
           sudo mount -t overlay -olowerdir=$(pwd),upperdir=/mnt/upper,workdir=/mnt/work overlay $(pwd) && df -hT
 
-      # ✅ 恢复缓存加速（保留正常缓存，只修复 rootfs 缺损）
-      - name: Restore cache from previous build
-        uses: actions/cache@v4
-        if: always()
-        with:
-          key: openwrt-build-${{ needs.check_commits.outputs.latest_commit_sha }}
-          restore-keys: |
-            openwrt-build
-          path: |
-            build_dir
-            dl
-            staging_dir
-            tmp
+      # 👇👇👇 这里已注释，禁止恢复旧缓存（防止内核错乱）
+      # - name: Restore cache from previous build
+      #   uses: actions/cache@v4
+      #   if: always()
+      #   with:
+      #     key: openwrt-build-${{ needs.check_commits.outputs.latest_commit_sha }}
+      #     restore-keys: |
+      #       openwrt-build
+      #     path: |
+      #       build_dir
+      #       dl
+      #       staging_dir
+      #       tmp
 
-      # 🔧 核心修复：删除损坏的 rootfs 目录以及内核编译标记，强制重新生成
-      - name: Fix broken rootfs
-        run: |
-          echo "🧹 Removing stale rootfs and kernel markers to force rebuild..."
-          rm -rf build_dir/target-aarch64_cortex-a53_musl/root-qualcommax
-          rm -f build_dir/target-aarch64_cortex-a53_musl/linux-qualcommax_ipq50xx/linux-6.12.80/.image
-          echo "✅ Rootfs cleaned."
-
-      - name: Clean up old caches
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api repos/${{ github.repository }}/actions/caches --paginate --jq '.actions_caches[0:] | .[] |.key' | while read key; do
-            echo "Removing old cache $key ..."
-            gh api -X DELETE "/repos/${{ github.repository }}/actions/caches?key=$key" 2>/dev/null || true
-          done
+      # 👇👇👇 这里已注释，不清理云端缓存（防止内核错乱）
+      # - name: Clean up old caches
+      #   env:
+      #     GH_TOKEN: ${{ github.token }}
+      #   run: |
+      #     gh api repos/${{ github.repository }}/actions/caches --paginate --jq '.actions_caches[0:] | .[] |.key' | while read key; do
+      #       echo "Removing old cache $key ..."
+      #       gh api -X DELETE "/repos/${{ github.repository }}/actions/caches?key=$key" 2>/dev/null || true
+      #     done
 
       # ========== 清理 OpenSSL 1.1 构建目录 ==========
       - name: Clean OpenSSL 1.1 build dirs
@@ -369,17 +379,14 @@ jobs:
           df -hT
           ./scripts/feeds update -a
           make download -j$(nproc) V=s
-
-      # ✅✅✅ 这里是终极修复：先编译工具链，再编译，绝对解决 sed 错误
+          
       - name: Build firmware
-        env:
+        env: 
           CMAKE_POLICY_VERSION_MINIMUM: 3.5
         run: |
           df -hT
-          make tools/install -j$(nproc) V=s
-          make toolchain/install -j$(nproc) V=s
-          make target/install -j$(nproc) V=s
-          make -j$(nproc) || make -j1 V=s
+          make check -j$(nproc) FIXUP=1 V=s
+          make -j$(nproc) || make -j1 V=s  # Retry single-threaded on failure
           tar cvzf bin/targets/qualcommax/ipq50xx/snapshots.tar.gz -C bin packages/aarch64_cortex-a53 targets/qualcommax/ipq50xx/packages
 
       - name: Verify packages in firmware
@@ -397,6 +404,11 @@ jobs:
           echo "检查 OpenSSL 1.1 库..."
           find bin/ -name "*.ipk" | grep -E "(libopenssl1.1)" || echo "⚠️ 未找到 libopenssl1.1"
           echo ""
+          echo "检查 蒲公英 VPN 包..."
+          find bin/ -name "pgyvpn-ipq5018*"
+          echo "检查 蒲公英 Web 包..."
+          find bin/ -name "luci-app-pgyvpn*"
+          find bin/ -name "luci-i18n-pgyvpn*"
           echo "检查 NSS 驱动包..."
           find bin/ -name "*.ipk" | grep -E "(qca-nss)" || echo "⚠️ 未找到 NSS 包"
           echo ""
@@ -414,7 +426,7 @@ jobs:
       - name: Check disk space usage
         if: always()
         run: df -hT
-        
+
   release:
     name: Create release
     needs: [check_commits, build]
@@ -429,7 +441,7 @@ jobs:
       - name: Set release date
         run: echo "RELEASE_DATE=$(date +%F)" >> $GITHUB_ENV
       - name: Publish release
-        uses: softprops/gh-release@master
+        uses: softprops/action-gh-release@master
         with:
           files: firmware/*
           tag_name: ${{ env.RELEASE_PREFIX }}-${{ env.RELEASE_DATE }}
@@ -450,8 +462,14 @@ jobs:
             **Commit:** `${{ needs.check_commits.outputs.nss_packages_repo_latest_commit_sha }}`
 
             ### 📝 Build Information
-            - **Target:** JDCloud RE-CS-03 后羿/哪吒
-            - **Configuration:** `${{ env.CONFIG_FILE }}`
+            - **Target:** [JDCloud RE-CS-03 后羿/哪吒]
+            - **蒲公英 VPN Web 面板已修复 ✅**
+            - **Configuration:** [`${{ env.CONFIG_FILE }}`](${{ env.CONFIG_FILE }})
+
+            ### 📦 插件说明
+            - 蒲公英 VPN **pgyvpn-ipq5018** (本地aarch64版 ✅)
+            - 蒲公英 Web 面板 luci-app-pgyvpn ✅
+            - 花生壳 phtunnel (OpenSSL 1.1) ✅
             - **NSS Offload:** ✅ 已启用（纯硬件转发）
             - **SmartDNS:** ✅ 已启用双引擎
 
