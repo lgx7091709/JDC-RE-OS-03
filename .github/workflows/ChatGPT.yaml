@@ -157,22 +157,6 @@ jobs:
           ./scripts/feeds install -a -p luci
           ./scripts/feeds install -a -p packages
 
-      # ========== ✅ 正确修复 qca-nss-crypto 编译错误（只改源码，不改Makefile） ==========
-      - name: Fix qca-nss-crypto prototype error
-        run: |
-          sleep 3
-          FILE_PATH=$(ls build_dir/target-aarch64_cortex-a53_musl/linux-qualcommax_ipq50xx/qca-nss-crypto-*/v2.0/src/hal/ipq50xx/nss_crypto_ce5.c 2>/dev/null | head -n1)
-          if [ -n "$FILE_PATH" ] && [ -f "$FILE_PATH" ]; then
-            echo "✅ 找到文件: $FILE_PATH"
-            echo "正在添加缺失的函数声明..."
-            sed -i '1i extern int nss_crypto_ce5_ctx_fill(struct nss_crypto_ctx *ctx, struct nss_crypto_session_data *data, uint8_t *key, uint16_t key_len);' "$FILE_PATH"
-            sed -i '1i extern int nss_crypto_ce5_engine_init(struct platform_device *pdev, struct resource *crypto_res, struct nss_crypto_ce *ce);' "$FILE_PATH"
-            sed -i '1i extern int nss_crypto_ce5_node_init(struct platform_device *pdev, const char *name);' "$FILE_PATH"
-            echo "✅ 函数声明添加完成！"
-          else
-            echo "⚠️ 文件尚未生成，跳过修复（会在编译时自动处理）"
-          fi
-
       # ========== 验证 OpenSSL 1.1 Makefile ==========
       - name: Verify OpenSSL 1.1 Makefile
         run: |
@@ -313,14 +297,13 @@ jobs:
           echo "CONFIG_PACKAGE_kmod-qca-nss-dp=y" >> .config
           echo "CONFIG_PACKAGE_kmod-qca-nss-ecm=y" >> .config
           echo "CONFIG_PACKAGE_qca-nss-ecm=y" >> .config
-          echo "CONFIG_PACKAGE_kmod-qca-nss-crypto=y" >> .config  # ✅ 启用，不禁用
+          echo "CONFIG_PACKAGE_kmod-qca-nss-crypto=y" >> .config
 
-          # ====================== 关键修复：禁用报错的 qca-mcs ======================
-          echo "" >> .config
-          echo "# 修复编译错误：禁用不兼容内核的 qca-mcs 模块" >> .config
+          # 🔥 修复循环依赖 + 编译错误
+          echo "CONFIG_PACKAGE_kmod-qca-nss-drv-pppoe=n" >> .config
+          echo "CONFIG_PACKAGE_kmod-tls=n" >> .config
           echo "CONFIG_PACKAGE_kmod-qca-mcs=n" >> .config
           echo "CONFIG_PACKAGE_qca-mcs=n" >> .config
-          # ========================================================================
 
           # 最后再运行一次 defconfig 确保依赖正确
           make defconfig -j$(nproc)
@@ -328,12 +311,21 @@ jobs:
           mkdir -p ${{ env.CUSTOM_FILES_PATH }}
           [ -d "builder_repo/${{ env.CUSTOM_FILES_PATH }}" ] && cp -r builder_repo/${{ env.CUSTOM_FILES_PATH }}. ${{ env.CUSTOM_FILES_PATH }} || true
 
-          # ==========================
-          # ✅ 最终修复：自动复制 NSS 头文件，解决 nss_api_if.h 找不到
-          # ==========================
-          mkdir -p staging_dir/target-aarch64_cortex-a53_musl/include/qca-nss-drv
-          find build_dir/target-aarch64_cortex-a53_musl/linux-qualcommax_ipq50xx/qca-nss-drv-*/include -name "*.h" -exec cp {} staging_dir/target-aarch64_cortex-a53_musl/include/qca-nss-drv/ \;
-          cp build_dir/target-aarch64_cortex-a53_musl/linux-qualcommax_ipq50xx/qca-nss-drv-*/include/*.h build_dir/target-aarch64_cortex-a53_musl/linux-qualcommax_ipq50xx/qca-nss-crypto-*/v2.0/src/ 2>/dev/null || true
+      # ========== ✅ 修复 qca-nss-crypto 函数声明（放到正确阶段） ==========
+      - name: Fix qca-nss-crypto prototype error
+        run: |
+          sleep 3
+          FILE_PATH=$(ls build_dir/target-aarch64_cortex-a53_musl/linux-qualcommax_ipq50xx/qca-nss-crypto-*/v2.0/src/hal/ipq50xx/nss_crypto_ce5.c 2>/dev/null | head -n1)
+          if [ -n "$FILE_PATH" ] && [ -f "$FILE_PATH" ]; then
+            echo "✅ 找到文件: $FILE_PATH"
+            echo "正在添加缺失的函数声明..."
+            sed -i '1i extern int nss_crypto_ce5_ctx_fill(struct nss_crypto_ctx *ctx, struct nss_crypto_session_data *data, uint8_t *key, uint16_t key_len);' "$FILE_PATH"
+            sed -i '1i extern int nss_crypto_ce5_engine_init(struct platform_device *pdev, struct resource *crypto_res, struct nss_crypto_ce *ce);' "$FILE_PATH"
+            sed -i '1i extern int nss_crypto_ce5_node_init(struct platform_device *pdev, const char *name);' "$FILE_PATH"
+            echo "✅ 函数声明添加完成！"
+          else
+            echo "⚠️ 文件尚未生成，跳过修复"
+          fi
 
       # ========== ✅ 自动注入真实编译时间（你要的核心功能） ==========
       - name: Inject real build timestamp
