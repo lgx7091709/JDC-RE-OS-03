@@ -327,7 +327,7 @@ jobs:
           rm -rf build_dir/host/openssl*
           echo "✅ OpenSSL 1.1 build dirs cleaned"
 
-      # 🔥🔥🔥 这里是我给你加的 OpenSSH 修复（解决你所有报错）
+      # 🔥🔥🔥 修复 OpenSSH GCC15 语法错误（仅修复EOF，其余逻辑不变）
       - name: Fix OpenSSH GCC15 compile error
         run: |
           FILE=$(find build_dir/target-aarch64_cortex-a53_musl/openssh-* -name "openbsd-compat.h" 2>/dev/null | head -1)
@@ -339,20 +339,19 @@ jobs:
           FILE2="feeds/packages/net/openssh/patches/900-openssl-gcc15.patch"
           if [ ! -f "$FILE2" ]; then
             mkdir -p feeds/packages/net/openssh/patches
-            cat > "$FILE2" << 'EOF'
+            cat > "$FILE2" <<"EOF"
 --- a/openbsd-compat/openbsd-compat.h
 +++ b/openbsd-compat/openbsd-compat.h
 @@ -284,7 +284,7 @@
  #undef nl_langinfo
  #endif
- 
+
 -# define nl_langinfo(x) ""
 +# define nl_langinfo(x) ((char *)"")
  #endif
- 
+
  #ifndef have___progname
 EOF
-            echo "✅ 永久补丁已生成"
           fi
 
       - name: Download packages
