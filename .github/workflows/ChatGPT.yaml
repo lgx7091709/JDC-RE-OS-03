@@ -118,7 +118,6 @@ jobs:
             echo "✅ pgyvpn Makefile 已强制使用 OpenSSL 1.1"
           fi
 
-
           # 修复 luci-app-pgyvpn 的 Makefile
           if [ -f "package/OpenOray/luci-app-pgyvpn/Makefile" ]; then
             sed -i 's/+luci-lib-ipkg//g' package/OpenOray/luci-app-pgyvpn/Makefile
@@ -289,23 +288,23 @@ jobs:
           echo "CONFIG_PACKAGE_luci-mod-system-mountpoints=y" >> .config
           echo "CONFIG_PACKAGE_block-mount=y" >> .config
 
-          # ===== NSS 硬件加速（仅核心，无 Shortcut-FE / nf-flow）=====
+          # ===== NSS 硬件加速【最小稳定版】适配 IPQ50xx 6.12 =====
           echo "" >> .config
-          echo "# NSS Hardware Acceleration" >> .config
+          echo "# NSS Hardware Acceleration Minimal" >> .config
+          # 仅保留基础驱动，禁用所有易冲突子模块
           echo "CONFIG_PACKAGE_kmod-qca-nss-drv=y" >> .config
           echo "CONFIG_PACKAGE_qca-nss-drv=y" >> .config
           echo "CONFIG_PACKAGE_kmod-qca-nss-dp=y" >> .config
-          echo "CONFIG_PACKAGE_kmod-qca-nss-ecm=y" >> .config
-          echo "CONFIG_PACKAGE_qca-nss-ecm=y" >> .config
-          # 👇👇👇 这里禁用 crypto 修复编译错误
-          #echo "CONFIG_PACKAGE_kmod-qca-nss-crypto=y" >> .config
-           echo "CONFIG_PACKAGE_kmod-qca-nss-crypto=n" >> .config
 
-          # 🔥 修复循环依赖 + 编译错误
+          # 全部禁用 冲突/编译卡死 模块
+          echo "CONFIG_PACKAGE_kmod-qca-nss-ecm=n" >> .config
+          echo "CONFIG_PACKAGE_qca-nss-ecm=n" >> .config
+          echo "CONFIG_PACKAGE_kmod-qca-nss-crypto=n" >> .config
           echo "CONFIG_PACKAGE_kmod-qca-nss-drv-pppoe=n" >> .config
           echo "CONFIG_PACKAGE_kmod-tls=n" >> .config
           echo "CONFIG_PACKAGE_kmod-qca-mcs=n" >> .config
           echo "CONFIG_PACKAGE_qca-mcs=n" >> .config
+          echo "CONFIG_PACKAGE_kmod-qca-nss-cfi=n" >> .config
 
           # 最后再运行一次 defconfig 确保依赖正确
           make defconfig -j$(nproc)
