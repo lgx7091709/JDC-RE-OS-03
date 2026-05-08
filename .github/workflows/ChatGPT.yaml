@@ -1,4 +1,4 @@
-name: Build OpenWrt Henry custom
+name: ChatGPT OpenWrt
 
 permissions:
   contents: write
@@ -197,15 +197,15 @@ jobs:
           # ==============================================
           # 全局修复 pre-install 脚本报错 / ubus/service缺失
           # ==============================================
-          #echo "CONFIG_PACKAGE_procd=y" >> .config
-          #echo "CONFIG_PACKAGE_ubus=y" >> .config
+          echo "CONFIG_PACKAGE_procd=y" >> .config
+          echo "CONFIG_PACKAGE_ubus=y" >> .config
           echo "CONFIG_PACKAGE_ubusd=y" >> .config
-          #echo "CONFIG_PACKAGE_service=y" >> .config
-          #echo "CONFIG_PACKAGE_openwrt-release=y" >> .config
-          #echo "CONFIG_TARGET_PERMISSION_SET=y" >> .config
-          #echo "CONFIG_PACKAGE_blockd=y" >> .config
-          #echo "CONFIG_PACKAGE_lsblk=y" >> .config
-          #echo "CONFIG_PACKAGE_dmidecode=y" >> .config
+          echo "CONFIG_PACKAGE_service=y" >> .config
+          echo "CONFIG_PACKAGE_openwrt-release=y" >> .config
+          echo "CONFIG_TARGET_PERMISSION_SET=y" >> .config
+          echo "CONFIG_PACKAGE_blockd=y" >> .config
+          echo "CONFIG_PACKAGE_lsblk=y" >> .config
+          echo "CONFIG_PACKAGE_dmidecode=y" >> .config
           
           # 运行 oldconfig 接受新选项
           make oldconfig
@@ -367,7 +367,7 @@ jobs:
       #       gh api -X DELETE "/repos/${{ github.repository }}/actions/caches?key=$key" 2>/dev/null || true
       #     done
 
-      # ========== 清理 OpenSSL 1.1 构建目录 ==========
+      # ========== 清理 OpenSSL 1.1 构建目录（保留下载的源码） ==========
       - name: Clean OpenSSL 1.1 build dirs
         run: |
           echo "🧹 Cleaning OpenSSL 1.1 build directories..."
