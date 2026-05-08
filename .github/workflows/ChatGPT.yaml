@@ -297,7 +297,9 @@ jobs:
           echo "CONFIG_PACKAGE_kmod-qca-nss-dp=y" >> .config
           echo "CONFIG_PACKAGE_kmod-qca-nss-ecm=y" >> .config
           echo "CONFIG_PACKAGE_qca-nss-ecm=y" >> .config
-          echo "CONFIG_PACKAGE_kmod-qca-nss-crypto=y" >> .config
+          # 👇👇👇 这里禁用 crypto 修复编译错误
+          #echo "CONFIG_PACKAGE_kmod-qca-nss-crypto=y" >> .config
+           echo "CONFIG_PACKAGE_kmod-qca-nss-crypto=n" >> .config
 
           # 🔥 修复循环依赖 + 编译错误
           echo "CONFIG_PACKAGE_kmod-qca-nss-drv-pppoe=n" >> .config
