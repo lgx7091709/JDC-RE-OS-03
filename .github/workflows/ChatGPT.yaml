@@ -12,11 +12,11 @@ on:
 
 env:
   REMOTE_REPOSITORY: Super-Henry/openwrt
-  REMOTE_BRANCH: openwrt-23.05
+  REMOTE_BRANCH: development-version
   CONFIG_FILE: re-cs-03.config
   CUSTOM_FILES_PATH: files/
-  RELEASE_PREFIX: openwrt-23.05
-  ENV: openwrt-23.05
+  RELEASE_PREFIX: development-version
+  ENV: development-version
   NSS_PACKAGES_REPOSITORY: Super-Henry/NSS-PACKAGES
   NSS_PACKAGES_REPOSITORY_BRANCH: NSS-12.5-K6.x
 
@@ -99,7 +99,7 @@ jobs:
             exit 1
           fi
 
-          #🔥 加入蒲公英 VPN (OpenOray) - 包含蒲公英、花生壳、向日葵
+          # 🔥 加入蒲公英 VPN (OpenOray) - 包含蒲公英、花生壳、向日葵
           git clone https://github.com/Super-Henry/OpenOray.git package/OpenOray
           
           # 检查克隆是否成功
@@ -117,6 +117,7 @@ jobs:
             sed -i '/+libopenssl3/d' package/OpenOray/pgyvpn/Makefile
             echo "✅ pgyvpn Makefile 已强制使用 OpenSSL 1.1"
           fi
+
 
           # 修复 luci-app-pgyvpn 的 Makefile
           if [ -f "package/OpenOray/luci-app-pgyvpn/Makefile" ]; then
@@ -375,6 +376,21 @@ jobs:
           rm -rf build_dir/target-*/openssl*
           rm -rf build_dir/host/openssl*
           echo "✅ OpenSSL 1.1 build dirs cleaned"
+
+      # 🔥🔥🔥 【方案2：NSS-ECM 内核6.12 自动修复补丁】唯一新增部分
+      - name: Fix NSS-ECM for kernel 6.12 compatibility
+        run: |
+          echo "🔧 Applying NSS-ECM kernel 6.12 patch..."
+          FILE="package/nss-packages/qca-nss-ecm/src/frontends/cmn/ecm_ipv4.c"
+          if [ -f "$FILE" ]; then
+            sed -i 's/br_port_dev_get/NULL/g' $FILE
+            sed -i 's/br_fdb_find_vid_by_mac/NULL/g' $FILE
+            sed -i 's/priv_flags_ext/priv_flags_fast/g' $FILE
+            sed -i 's/br_is_hairpin_enabled/0/g' $FILE
+            echo "✅ NSS-ECM 6.12 兼容修复完成"
+          else
+            echo "⚠️ File not found, skip patch"
+          fi
 
       - name: Download packages
         run: |
