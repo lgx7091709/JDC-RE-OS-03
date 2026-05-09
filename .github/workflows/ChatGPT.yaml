@@ -12,11 +12,11 @@ on:
 
 env:
   REMOTE_REPOSITORY: Super-Henry/openwrt
-  REMOTE_BRANCH: development-version
+  REMOTE_BRANCH: openwrt-23.05
   CONFIG_FILE: re-cs-03.config
   CUSTOM_FILES_PATH: files/
-  RELEASE_PREFIX: development-version
-  ENV: development-version
+  RELEASE_PREFIX: openwrt-23.05
+  ENV: openwrt-23.05
   NSS_PACKAGES_REPOSITORY: Super-Henry/NSS-PACKAGES
   NSS_PACKAGES_REPOSITORY_BRANCH: NSS-12.5-K6.x
 
