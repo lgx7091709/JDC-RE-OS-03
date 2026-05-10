@@ -61,6 +61,7 @@ jobs:
         with:
           repository: ${{ env.REMOTE_REPOSITORY }}
           ref: ${{ env.REMOTE_BRANCH }}
+          fetch-depth: 0
 
       - name: Checkout current repository
         uses: actions/checkout@v4
