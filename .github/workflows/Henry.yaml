@@ -339,6 +339,11 @@ jobs:
           CMAKE_POLICY_VERSION_MINIMUM: 3.5
         run: |
           df -hT
+          # 🔥 强制清理所有缓存，重新编译最新内核
+          make clean
+          make dirclean
+          rm -rf tmp build_dir staging_dir
+          
           make check -j$(nproc) FIXUP=1 V=s
           make -j$(nproc) || make -j1 V=s  # Retry single-threaded on failure
           tar cvzf bin/targets/qualcommax/ipq50xx/snapshots.tar.gz -C bin packages/aarch64_cortex-a53 targets/qualcommax/ipq50xx/packages
