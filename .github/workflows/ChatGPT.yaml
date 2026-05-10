@@ -176,6 +176,18 @@ jobs:
             exit 1
           fi
 
+      # 🔥🔥🔥 【6.12.80 内核专用】强制禁用 NSS-ECM，永不编译
+      - name: Force disable qca-nss-ecm (fix build error)
+        run: |
+          echo "🔥 强制禁用 NSS-ECM 编译（解决 6.12.80 内核报错）"
+          cd package/nss-packages/qca-nss-ecm
+          sed -i '/define Build\/Compile/,/endef/d' Makefile
+          echo -e "define Build\/Compile\nendef" >> Makefile
+          sed -i '/define Build\/Install/,/endef/d' Makefile
+          echo -e "define Build\/Install\nendef" >> Makefile
+          rm -rf ../../../build_dir/target-*/qca-nss-ecm*
+          echo "✅ NSS-ECM 已永久禁用"
+
       - name: Setup configuration and custom files
         run: |
           df -hT
@@ -313,7 +325,7 @@ jobs:
           mkdir -p ${{ env.CUSTOM_FILES_PATH }}
           [ -d "builder_repo/${{ env.CUSTOM_FILES_PATH }}" ] && cp -r builder_repo/${{ env.CUSTOM_FILES_PATH }}. ${{ env.CUSTOM_FILES_PATH }} || true
 
-      # ========== ✅ 修复 qca-nss-crypto 函数声明（放到正确阶段） ==========
+      # ========== ✅ 修复 qca-nss-crypto 函数声明 ==========
       - name: Fix qca-nss-crypto prototype error
         run: |
           sleep 3
@@ -329,7 +341,7 @@ jobs:
             echo "⚠️ 文件尚未生成，跳过修复"
           fi
 
-      # ========== ✅ 自动注入真实编译时间（你要的核心功能） ==========
+      # ========== ✅ 自动注入真实编译时间 ==========
       - name: Inject real build timestamp
         run: |
           BUILD_DATE=$(date +%s)
@@ -376,21 +388,6 @@ jobs:
           rm -rf build_dir/target-*/openssl*
           rm -rf build_dir/host/openssl*
           echo "✅ OpenSSL 1.1 build dirs cleaned"
-
-      # 🔥🔥🔥 【方案2：NSS-ECM 内核6.12 自动修复补丁】唯一新增部分
-      - name: Fix NSS-ECM for kernel 6.12 compatibility
-        run: |
-          echo "🔧 Applying NSS-ECM kernel 6.12 patch..."
-          FILE="package/nss-packages/qca-nss-ecm/src/frontends/cmn/ecm_ipv4.c"
-          if [ -f "$FILE" ]; then
-            sed -i 's/br_port_dev_get/NULL/g' $FILE
-            sed -i 's/br_fdb_find_vid_by_mac/NULL/g' $FILE
-            sed -i 's/priv_flags_ext/priv_flags_fast/g' $FILE
-            sed -i 's/br_is_hairpin_enabled/0/g' $FILE
-            echo "✅ NSS-ECM 6.12 兼容修复完成"
-          else
-            echo "⚠️ File not found, skip patch"
-          fi
 
       - name: Download packages
         run: |
@@ -466,31 +463,25 @@ jobs:
           name: 🚀 OpenWrt Build Release ${{ env.RELEASE_DATE }}
           body: |
             ## 📦 OpenWrt Automated Build Release
-
             **Build Date:** ${{ env.RELEASE_DATE }}
-
             ### 🔄 Main Repository
             **Repository:** [${{ env.REMOTE_REPOSITORY }}](https://github.com/${{ env.REMOTE_REPOSITORY }})
             **Branch:** `${{ env.REMOTE_BRANCH }}`
             **Commit:** `${{ needs.check_commits.outputs.latest_commit_sha }}`
-
             ### 📦 NSS Packages
             **Repository:** [${{ env.NSS_PACKAGES_REPOSITORY }}](https://github.com/${{ env.NSS_PACKAGES_REPOSITORY }})
             **Branch:** `${{ env.NSS_PACKAGES_REPOSITORY_BRANCH }}`
             **Commit:** `${{ needs.check_commits.outputs.nss_packages_repo_latest_commit_sha }}`
-
             ### 📝 Build Information
             - **Target:** [JDCloud RE-CS-03 后羿/哪吒]
             - **蒲公英 VPN Web 面板已修复 ✅**
             - **Configuration:** [`${{ env.CONFIG_FILE }}`](${{ env.CONFIG_FILE }})
-
             ### 📦 插件说明
             - 蒲公英 VPN **pgyvpn-ipq5018** (本地aarch64版 ✅)
             - 蒲公英 Web 面板 luci-app-pgyvpn ✅
             - 花生壳 phtunnel (OpenSSL 1.1) ✅
             - **NSS Offload:** ✅ 已启用（纯硬件转发）
             - **SmartDNS:** ✅ 已启用双引擎
-
             ### 📋 Notes
             - Automated build triggered by ${{ github.event_name }}
             - Previous releases are automatically cleaned up (keeping latest 5)
