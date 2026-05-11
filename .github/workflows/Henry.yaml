@@ -236,7 +236,11 @@ jobs:
           echo "CONFIG_PACKAGE_xray-plugin=y" >> .config
           echo "CONFIG_PACKAGE_sing-box=y" >> .config
           echo "CONFIG_PACKAGE_hysteria=y" >> .config
-          echo "CONFIG_PACKAGE_naiveproxy=y" >> .config
+          
+          # 🔥 🔥 🔥 这里关闭 naiveproxy 解决 404 错误 🔥 🔥 🔥
+          echo "CONFIG_PACKAGE_naiveproxy=n" >> .config
+          echo "CONFIG_PACKAGE_passwall2_naiveproxy=n" >> .config
+          
           echo "CONFIG_PACKAGE_tuic-client=y" >> .config
           echo "CONFIG_PACKAGE_shadowsocks-libev-ss-redir=y" >> .config
           echo "CONFIG_PACKAGE_shadowsocks-libev-ss-tunnel=y" >> .config
