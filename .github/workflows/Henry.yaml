@@ -280,19 +280,6 @@ jobs:
 
           # 最后再运行一次 defconfig 确保依赖正确
           make defconfig -j$(nproc)
-          
-          mkdir -p ${{ env.CUSTOM_FILES_PATH }}
-          [ -d "builder_repo/${{ env.CUSTOM_FILES_PATH }}" ] && cp -r builder_repo/${{ env.CUSTOM_FILES_PATH }}. ${{ env.CUSTOM_FILES_PATH }} || true
-
-      # ========== ✅ 自动注入真实编译时间（你要的核心功能） ==========
-      - name: Inject real build timestamp
-        run: |
-          BUILD_DATE=$(date +%s)
-          BUILD_DATE_FRIENDLY=$(date +"%Y-%m-%d %H:%M:%S")
-          echo "BUILD_DATE=\"$BUILD_DATE\"" >> package/base-files/files/etc/os-release
-          mkdir -p files/etc
-          echo "固件编译时间: $BUILD_DATE_FRIENDLY" > files/etc/build_time
-          echo "编译源码提交: ${{ needs.check_commits.outputs.latest_commit_sha }}" >> files/etc/build_time
 
       - name: Use /mnt for more disk space
         if: always()
@@ -331,6 +318,21 @@ jobs:
           rm -rf build_dir/target-*/openssl*
           rm -rf build_dir/host/openssl*
           echo "✅ OpenSSL 1.1 build dirs cleaned"
+
+      # ========== ✅ 【修复】自动注入真实编译时间（放在清理后，永不丢失） ==========
+      - name: Prepare custom files and inject build info
+        run: |
+          # 恢复自定义 files 目录
+          mkdir -p ${{ env.CUSTOM_FILES_PATH }}
+          [ -d "builder_repo/${{ env.CUSTOM_FILES_PATH }}" ] && cp -r builder_repo/${{ env.CUSTOM_FILES_PATH }}. ${{ env.CUSTOM_FILES_PATH }} || true
+          
+          # 写入编译信息
+          BUILD_DATE=$(date +%s)
+          BUILD_DATE_FRIENDLY=$(date +"%Y-%m-%d %H:%M:%S")
+          echo "BUILD_DATE=\"$BUILD_DATE\"" >> package/base-files/files/etc/os-release
+          mkdir -p files/etc
+          echo "固件编译时间: $BUILD_DATE_FRIENDLY" > files/etc/build_time
+          echo "编译源码提交: ${{ needs.check_commits.outputs.latest_commit_sha }}" >> files/etc/build_time
 
       - name: Download packages
         run: |
