@@ -3,90 +3,35 @@ START=8
 STOP=99
 
 start() {
-    sleep 3
+    sleep 2
 
     # 标记文件
-    PART_MARKER="/tmp/part_auto_created"
     OVERLAY_MARKER="/overlay/.format_done"
-    SWAP_MARKER="/tmp/swap_format_done"
-
-    # 期望的分区大小 (53G samba, 2G swap)
-    EXPECTED_SAMBA_SIZE_GB=53
-    EXPECTED_SWAP_SIZE_GB=2
 
     # ==============================================
-    # 自动创建分区（只在不存在/大小不对时创建）
-    # 固定沿用你现有起始扇区，绝对安全
-    # ==============================================
-    if [ ! -f "$PART_MARKER" ]; then
-        echo "【自动检查】创建/校正 overlay(2G) samba(53G) swap(2G) 分区..."
-
-        # 严格按你现有分区表顺延，绝对不破坏前16分区
-        sgdisk /dev/mmcblk0 \
-        --new=17:2511394:6394531  --change-name=17:"overlay"  --typecode=17:8300 \
-        --new=18:6394532:+53G     --change-name=18:"samba"    --typecode=18:8300 \
-        --new=19::+2G             --change-name=19:"swap"     --typecode=19:8200
-
-        sync
-        sleep 2
-        touch "$PART_MARKER"
-        echo "【完成】分区创建/校正完成"
-    fi
-
-    # ==============================================
-    # overlay：遵循 OpenWrt 升级规则
+    # overlay：首次/不保留配置才格式化
     # ==============================================
     if [ ! -f "$OVERLAY_MARKER" ]; then
-        echo "【overlay】首次/不保留配置 → 格式化"
+        echo "【overlay】首次初始化 → 格式化"
         umount /dev/mmcblk0p17 2>/dev/null
         mkfs.ext4 -F -L overlay /dev/mmcblk0p17
         mkdir -p /overlay
         mount /dev/mmcblk0p17 /overlay
         touch "$OVERLAY_MARKER"
     else
-        echo "【overlay】保留配置 → 直接挂载"
+        echo "【overlay】正常挂载"
         mkdir -p /overlay
         mount /dev/mmcblk0p17 /overlay 2>/dev/null
     fi
 
     # ==============================================
-    # samba：分区大小不对 → 重建格式化
-    #        分区大小正确 → 只挂载不格式化
+    # samba：只挂载，绝不格式化
     # ==============================================
     if [ -b "/dev/mmcblk0p18" ]; then
-        # 获取实际分区大小(G)
-        real_size=$(block info /dev/mmcblk0p18 | grep -o 'SIZE="[^"]*"' | cut -d'"' -f2 | awk '{print int($1/1024/1024/1024)}')
-        if [ "$real_size" -ge $((EXPECTED_SAMBA_SIZE_GB-1)) ] && [ "$real_size" -le $((EXPECTED_SAMBA_SIZE_GB+1)) ]; then
-            echo "【samba】分区大小正确 → 挂载，不格式化"
-            mkdir -p /mnt/samba
-            mount /dev/mmcblk0p18 /mnt/samba 2>/dev/null
-        else
-            echo "【samba】分区大小不正确 → 重新格式化"
-            umount /dev/mmcblk0p18 2>/dev/null
-            mkfs.ext4 -F -L samba /dev/mmcblk0p18
-            mkdir -p /mnt/samba
-            mount /dev/mmcblk0p18 /mnt/samba 2>/dev/null
-        fi
-    else
-        echo "【samba】分区不存在 → 创建并格式化"
-        umount /dev/mmcblk0p18 2>/dev/null
-        mkfs.ext4 -F -L samba /dev/mmcblk0p18
         mkdir -p /mnt/samba
         mount /dev/mmcblk0p18 /mnt/samba 2>/dev/null
+        echo "【samba】已挂载，不格式化"
     fi
-
-    # ==============================================
-    # swap：2G 自动启用
-    # ==============================================
-    if [ -b "/dev/mmcblk0p19" ]; then
-        echo "【swap】启用交换分区"
-        swapoff /dev/mmcblk0p19 2>/dev/null
-        mkswap -L swap /dev/mmcblk0p19 2>/dev/null
-        swapon /dev/mmcblk0p19 2>/dev/null
-        touch "$SWAP_MARKER"
-    fi
-
-    /etc/init.d/fstab restart
 }
 
 stop() {
