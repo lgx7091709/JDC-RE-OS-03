@@ -3,16 +3,19 @@ START=8
 STOP=99
 
 start() {
-    sleep 2
+    # 等待存储设备就绪
+    sleep 3
 
-    # 标记文件
+    # 格式化标记（只格式化一次）
     OVERLAY_MARKER="/overlay/.format_done"
+    SWAP_MARKER="/tmp/swap_format_done"
 
     # ==============================================
-    # overlay：首次/不保留配置才格式化
+    # 首次启动 / sysupgrade -n 时才格式化 overlay
     # ==============================================
     if [ ! -f "$OVERLAY_MARKER" ]; then
-        echo "【overlay】首次初始化 → 格式化"
+        echo "【overlay】首次初始化，格式化 /dev/mmcblk0p17"
+        
         umount /dev/mmcblk0p17 2>/dev/null
         mkfs.ext4 -F -L overlay /dev/mmcblk0p17
         mkdir -p /overlay
@@ -25,13 +28,19 @@ start() {
     fi
 
     # ==============================================
-    # samba：只挂载，绝不格式化
+    # 首次启动才格式化 swap（以后只启用）
     # ==============================================
-    if [ -b "/dev/mmcblk0p18" ]; then
-        mkdir -p /mnt/samba
-        mount /dev/mmcblk0p18 /mnt/samba 2>/dev/null
-        echo "【samba】已挂载，不格式化"
+    if [ ! -f "$SWAP_MARKER" ]; then
+        echo "【swap】首次初始化，格式化 /dev/mmcblk0p19"
+        
+        swapoff /dev/mmcblk0p19 2>/dev/null
+        mkswap -L swap /dev/mmcblk0p19
+        swapon /dev/mmcblk0p19
+        touch "$SWAP_MARKER"
     fi
+
+    # 交给系统 fstab 统一挂载所有分区（overlay/samba/swap）
+    /etc/init.d/fstab restart
 }
 
 stop() {
