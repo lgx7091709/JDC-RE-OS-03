@@ -22,10 +22,10 @@ index 9ce5061657..ca3098ce74 100644
  # User defined entries should be added to this file not to /etc/sysctl.d/* as
  # that directory is not backed-up by default and will not survive a reimage
 +net.netfilter.nf_conntrack_max=165535
-diff --git a/package/boot/uboot-tools/uboot-envtools/files/qualcommax_ipq50xx b/package/boot/uboot-tools/uboot-envtools/files/qualcommax_ipq50xx
+diff --git a/package/boot/uboot-envtools/files/qualcommax_ipq50xx b/package/boot/uboot-envtools/files/qualcommax_ipq50xx
 index d4169fa663..41cffddd79 100644
---- a/package/boot/uboot-tools/uboot-envtools/files/qualcommax_ipq50xx
-+++ b/package/boot/uboot-tools/uboot-envtools/files/qualcommax_ipq50xx
+--- a/package/boot/uboot-envtools/files/qualcommax_ipq50xx
++++ b/package/boot/uboot-envtools/files/qualcommax_ipq50xx
 @@ -30,6 +30,9 @@ yuncore,ax830|\
  yuncore,ax850)
  	ubootenv_add_mtd "0:APPSBLENV" "0x0" "0x10000" "0x10000"
