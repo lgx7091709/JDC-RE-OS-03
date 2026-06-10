@@ -35,8 +35,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          latest_sha=$(gh api "repos/${{ env.REMOTE_REPOSITORY }}/commits/${{ env.REMOTE_BRANCH }}" --jq .sha)
-          packages_sha=$(gh api "repos/${{ env.NSS_PACKAGES_REPOSITORY }}/commits/${{ env.NSS_PACKAGES_REPOSITORY_BRANCH }}" --jq .sha)
+          latest_sha=$(gh api "repos/${{ env.REMOTE_REPOSITORY }}/branches/${{ env.REMOTE_BRANCH }}" --jq .commit.sha)
+          packages_sha=$(gh api "repos/${{ env.NSS_PACKAGES_REPOSITORY }}/branches/${{ env.NSS_PACKAGES_REPOSITORY_BRANCH }}" --jq .commit.sha)
           release_body=$(gh api "repos/${{ github.repository }}/releases/latest" --jq .body 2>/dev/null || echo "")
 
           new_commits=$([[ "$release_body" == *"$latest_sha"* ]] && echo "false" || echo "true")
