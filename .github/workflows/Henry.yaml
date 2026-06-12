@@ -99,6 +99,11 @@ jobs:
         run: |
           df -hT
           mv builder_repo/${{ env.CONFIG_FILE }} .config
+          # 强制清除mbedtls ustream，只保留openssl栈，解决文件冲突
+          sed -i 's/^CONFIG_PACKAGE_libustream-mbedtls=y/# CONFIG_PACKAGE_libustream-mbedtls is not set/' .config
+          sed -i 's/^CONFIG_PACKAGE_luci-ssl=y/# CONFIG_PACKAGE_luci-ssl is not set/' .config
+          echo "CONFIG_PACKAGE_libustream-openssl=y" >> .config
+          echo "CONFIG_PACKAGE_luci-ssl-openssl=y" >> .config
           echo "CONFIG_PACKAGE_luci-app-argon-config=y" >> .config
           echo "CONFIG_PACKAGE_luci-theme-argon=y" >> .config
           # 修复ssh冲突：禁用原版openssh-server，只启用PAM版本
