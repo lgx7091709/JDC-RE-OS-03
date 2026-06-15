@@ -11,8 +11,9 @@ on:
   workflow_dispatch:
 
 env:
-  REMOTE_REPOSITORY: Super-Henry/openwrt
-  REMOTE_BRANCH: development-version
+ # REMOTE_REPOSITORY: Super-Henry/openwrt
+  REMOTE_REPOSITORY: akercn/immortalwrt
+  REMOTE_BRANCH: main
   CONFIG_FILE: re-cs-03.config
   CUSTOM_FILES_PATH: files/
   RELEASE_PREFIX: main
